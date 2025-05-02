@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quilio App</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Estilos gerais e Leaflet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/leaflet.css">
+
+  <!-- Bibliotecas externas -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.25/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    /* Tabs */
+    .tabs { display: flex; margin-bottom: 1rem; }
+    .tab { flex: 1; padding: 0.75rem; text-align: center; background: #eee; cursor: pointer; border: 1px solid #ccc; }
+    .tab.active { background: #3367D6; color: #fff; }
+    /* Sections */
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Registro de Quilometragem</h1>
+  </header>
+
+  <main>
+    <!-- Navegação por abas -->
+    <div class="tabs">
+      <div id="tab-records" class="tab active">Registros</div>
+      <div id="tab-map" class="tab">Mapa</div>
+    </div>
+
+    <!-- Aba de Registros -->
+    <div id="section-records" class="tab-section active">
+      <!-- Formulário de registro -->
+      <section id="form-section">
+        <form id="record-form">
+          <div class="form-group">
+            <label for="atm">ATM:</label>
+            <input type="text" id="atm" name="atm" required placeholder="Número do ATM">
+          </div>
+          <div class="form-group">
+            <label for="km-start">KM Inicial:</label>
+            <input type="number" id="km-start" name="kmStart" required min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label for="km-end">KM Final:</label>
+            <input type="number" id="km-end" name="kmEnd" required min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label for="date-time">Data e Hora:</label>
+            <input type="datetime-local" id="date-time" name="dateTime" required>
+          </div>
+          <div class="form-group">
+            <label for="notes">Anotações:</label>
+            <textarea id="notes" name="notes" rows="2" placeholder="Observações..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="photo">Foto:</label>
+            <input type="file" id="photo" accept="image/*">
+          </div>
+          <input type="hidden" id="lat" name="latitude">
+          <input type="hidden" id="lng" name="longitude">
+          <button type="submit">Salvar Registro</button>
+        </form>
+      </section>
+
+      <!-- Listagem e ações -->
+      <section id="list-section">
+        <div id="filters" class="form-group">
+          <label for="filter-atm">Filtrar por ATM:</label>
+          <input type="text" id="filter-atm" placeholder="Número do ATM">
+          <label for="filter-date">Filtrar por Data:</label>
+          <input type="date" id="filter-date">
+          <button type="button" id="apply-filters">Aplicar filtros</button>
+        </div>
+        <div class="actions">
+          <button type="button" id="export-csv">Exportar CSV</button>
+          <button type="button" id="export-pdf">Exportar PDF</button>
+        </div>
+        <div id="records-container"></div>
+      </section>
+
+      <!-- Dashboard de indicadores -->
+      <section id="dashboard-section">
+        <h2>Painel de Indicadores</h2>
+        <div class="chart-container"><canvas id="km-chart"></canvas></div>
+        <div class="chart-container"><canvas id="avg-chart"></canvas></div>
+      </section>
+    </div>
+
+    <!-- Aba de Mapa -->
+    <div id="section-map" class="tab-section">
+      <section id="map-section">
+        <h2>Mapa de Posicionamento</h2>
+        <div id="map" style="height: 400px;"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Script principal -->
+  <script type="module" src="js/app.js"></script>
+  <script>
+    // Controle de abas
+    const tabRecords = document.getElementById('tab-records');
+    const tabMap = document.getElementById('tab-map');
+    const secRecords = document.getElementById('section-records');
+    const secMap = document.getElementById('section-map');
+
+    tabRecords.addEventListener('click', () => {
+      tabRecords.classList.add('active');
+      tabMap.classList.remove('active');
+      secRecords.classList.add('active');
+      secMap.classList.remove('active');
+    });
+
+    tabMap.addEventListener('click', () => {
+      tabMap.classList.add('active');
+      tabRecords.classList.remove('active');
+      secMap.classList.add('active');
+      secRecords.classList.remove('active');
+      // Ajusta o mapa ao exibir a aba
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 0);
+    });
+  </script>
+</body>
+</html>
