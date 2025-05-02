@@ -169,16 +169,18 @@
   word-wrap: break-word;
   white-space: normal;
 }
-/* Direitos reservados com seu nome no canto */
+/* Direitos reservados centralizados */
 body::after {
   content: "© 2025 André Klarosk – Todos os direitos reservados";
   position: fixed;
-  bottom: 8px;
-  right: 12px;
+  bottom: 8px;            /* distância do rodapé */
+  left: 50%;              
+  transform: translateX(-50%);
   font-size: 0.75rem;
   color: rgba(0, 0, 0, 0.2);
   pointer-events: none;
   z-index: 9999;
   white-space: nowrap;
 }
+
 
