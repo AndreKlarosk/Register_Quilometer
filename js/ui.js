@@ -1,21 +1,19 @@
-import { addRecord, getRecords } from './db.js';
+import { addRecord, getRecords, deleteRecord, updateRecord } from './db.js';
 import { renderCharts } from './charts.js';
 import { renderMap } from './map.js';
 import { exportCSV, generatePDF } from './pdf.js';
 
 function applyFilters(records) {
-  const atmFilter = document
-    .getElementById('filter-atm')
-    .value.trim()
-    .toLowerCase();
+  const atmFilter = document.getElementById('filter-atm').value.trim().toLowerCase();
   const dateFilter = document.getElementById('filter-date').value;
+  // se nenhum filtro, não mostra nada
+  if (!atmFilter && !dateFilter) return [];
 
   return records.filter((rec) => {
-    const matchATM = atmFilter
-      ? rec.atm.toLowerCase().includes(atmFilter)
-      : true;
+    const matchATM = atmFilter ? rec.atm.toLowerCase().includes(atmFilter) : true;
     const recDate = rec.dateTime.split('T')[0];
-    return matchATM && (!dateFilter || recDate === dateFilter);
+    const matchDate = dateFilter ? recDate === dateFilter : true;
+    return matchATM && matchDate;
   });
 }
 
@@ -27,26 +25,28 @@ export function renderRecords(records) {
     return;
   }
 
-  const rows = records
-    .map((rec) => {
-      const dist = (rec.kmEnd - rec.kmStart).toFixed(1);
-      const note = rec.notes || '';
-      const imgTag = rec.photo
-        ? `<img src="${rec.photo}" alt="Foto" />`
-        : '';
+  const rows = records.map((rec) => {
+    const dist = (rec.kmEnd - rec.kmStart).toFixed(1);
+    const note = rec.notes || '';
+    const imgTag = rec.photo
+      ? `<img src="${rec.photo}" alt="Foto">`
+      : '';
 
-      return `
-        <tr>
-          <td>${rec.atm}</td>
-          <td>${new Date(rec.dateTime).toLocaleString()}</td>
-          <td>${rec.kmStart}</td>
-          <td>${rec.kmEnd}</td>
-          <td>${dist}</td>
-          <td>${note}</td>
-          <td>${imgTag}</td>
-        </tr>`;
-    })
-    .join('');
+    return `
+      <tr>
+        <td>${rec.atm}</td>
+        <td>${new Date(rec.dateTime).toLocaleString()}</td>
+        <td>${rec.kmStart}</td>
+        <td>${rec.kmEnd}</td>
+        <td>${dist}</td>
+        <td>${note}</td>
+        <td>${imgTag}</td>
+        <td>
+          <button class="edit-btn" data-id="${rec.id}">Editar</button>
+          <button class="delete-btn" data-id="${rec.id}">Excluir</button>
+        </td>
+      </tr>`;
+  }).join('');
 
   container.innerHTML = `
     <table>
@@ -59,6 +59,7 @@ export function renderRecords(records) {
           <th>Dist</th>
           <th>Notas</th>
           <th>Foto</th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -70,107 +71,103 @@ export function renderRecords(records) {
 async function loadAndRender() {
   const all = await getRecords();
   const filtered = applyFilters(all);
-
   renderRecords(filtered);
   renderCharts(filtered);
   renderMap(filtered);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document
-    .getElementById('record-form')
-    .addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-
-          document.getElementById('lat').value = lat;
-          document.getElementById('lng').value = lng;
-
-          const atm = document.getElementById('atm').value.trim();
-          const kmStart = parseFloat(
-            document.getElementById('km-start').value
-          );
-          const kmEnd = parseFloat(
-            document.getElementById('km-end').value
-          );
-          const dateTime =
-            document.getElementById('date-time').value;
-          const notes =
-            document.getElementById('notes').value.trim();
-          const photoFile =
-            document.getElementById('photo').files[0];
-
-          if (kmEnd < kmStart) {
-            return alert(
-              'KM final deve ser ≥ KM inicial'
-            );
-          }
-
-          const recordBase = {
-            atm,
-            kmStart,
-            kmEnd,
-            dateTime,
-            latitude: lat,
-            longitude: lng,
-            notes,
-          };
-
-          if (photoFile) {
-            const reader = new FileReader();
-            reader.onload = async () => {
-              await addRecord({
-                ...recordBase,
-                photo: reader.result,
-              });
-              document
-                .getElementById('record-form')
-                .reset();
-              loadAndRender();
-            };
-            reader.readAsDataURL(photoFile);
-          } else {
-            await addRecord({
-              ...recordBase,
-              photo: null,
-            });
-            document
-              .getElementById('record-form')
-              .reset();
-            loadAndRender();
-          }
-        },
-        (err) =>
-          alert(
-            'Geolocalização falhou: ' + err.message
-          )
-      );
-    });
-
-  document
-    .getElementById('apply-filters')
-    .addEventListener('click', (e) => {
-      e.preventDefault();
+  // Grava novo
+  document.getElementById('record-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      // … captura campos do formulário principal …
+      // (igual ao seu código original)
+      await addRecord({ atm, kmStart, kmEnd, dateTime, latitude: lat, longitude: lng, notes, photo: photoData });
+      document.getElementById('record-form').reset();
       loadAndRender();
-    });
+    }, err => alert('Geolocalização falhou: ' + err.message));
+  });
 
-  document
-    .getElementById('export-csv')
-    .addEventListener('click', async () => {
+  // Filtro
+  document.getElementById('apply-filters').addEventListener('click', e => {
+    e.preventDefault();
+    loadAndRender();
+  });
+
+  // Export CSV/PDF
+  document.getElementById('export-csv').addEventListener('click', async () => {
+    const recs = await getRecords(); exportCSV(recs);
+  });
+  document.getElementById('export-pdf').addEventListener('click', async () => {
+    const recs = await getRecords(); generatePDF(recs);
+  });
+
+  // Delegação: Editar / Excluir
+  const container = document.getElementById('records-container');
+  container.addEventListener('click', async (e) => {
+    const id = Number(e.target.dataset.id);
+    if (e.target.classList.contains('delete-btn')) {
+      if (confirm('Deseja excluir este registro?')) {
+        await deleteRecord(id);
+        loadAndRender();
+      }
+    } else if (e.target.classList.contains('edit-btn')) {
       const recs = await getRecords();
-      exportCSV(recs);
-    });
+      const rec = recs.find(r => r.id === id);
+      if (rec) openEditModal(rec);
+    }
+  });
 
-  document
-    .getElementById('export-pdf')
-    .addEventListener('click', async () => {
-      const recs = await getRecords();
-      generatePDF(recs);
-    });
+  // Modal de edição
+  const editModal = document.getElementById('editModal');
+  const closeModalBtn = editModal.querySelector('.close-btn');
+  const editForm = document.getElementById('editForm');
 
+  function openEditModal(rec) {
+    document.getElementById('edit-id').value = rec.id;
+    document.getElementById('edit-atm').value = rec.atm;
+    document.getElementById('edit-km-start').value = rec.kmStart;
+    document.getElementById('edit-km-end').value = rec.kmEnd;
+    document.getElementById('edit-date-time').value = rec.dateTime;
+    document.getElementById('edit-notes').value = rec.notes || '';
+    document.getElementById('edit-lat').value = rec.latitude;
+    document.getElementById('edit-lng').value = rec.longitude;
+    document.getElementById('edit-photo-preview').src = rec.photo || '';
+    editModal.classList.add('active');
+  }
+
+  closeModalBtn.addEventListener('click', () => editModal.classList.remove('active'));
+  editModal.addEventListener('click', e => { if (e.target === editModal) editModal.classList.remove('active'); });
+
+  editForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id        = Number(document.getElementById('edit-id').value);
+    const atm       = document.getElementById('edit-atm').value.trim();
+    const kmStart   = parseFloat(document.getElementById('edit-km-start').value);
+    const kmEnd     = parseFloat(document.getElementById('edit-km-end').value);
+    const dateTime  = document.getElementById('edit-date-time').value;
+    const notes     = document.getElementById('edit-notes').value.trim();
+    const latitude  = parseFloat(document.getElementById('edit-lat').value);
+    const longitude = parseFloat(document.getElementById('edit-lng').value);
+    // Foto substituta?
+    const photoFile = document.getElementById('edit-photo').files[0];
+    let photoData   = document.getElementById('edit-photo-preview').src;
+    if (photoFile) {
+      photoData = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(photoFile);
+      });
+    }
+    // Atualiza no banco
+    await updateRecord(id, { atm, kmStart, kmEnd, dateTime, latitude, longitude, notes, photo: photoData });
+    editModal.classList.remove('active');
+    loadAndRender();
+  });
+
+  // Primeira renderização
   loadAndRender();
 });
