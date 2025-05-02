@@ -78,18 +78,54 @@ async function loadAndRender() {
 
 document.addEventListener('DOMContentLoaded', () => {
   // Grava novo
-  document.getElementById('record-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      // … captura campos do formulário principal …
-      // (igual ao seu código original)
-      await addRecord({ atm, kmStart, kmEnd, dateTime, latitude: lat, longitude: lng, notes, photo: photoData });
-      document.getElementById('record-form').reset();
-      loadAndRender();
-    }, err => alert('Geolocalização falhou: ' + err.message));
+  // Grava novo registro
+document.getElementById('record-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    // captura da posição atual
+    const latitude  = pos.coords.latitude;
+    const longitude = pos.coords.longitude;
+
+    // captura dos campos do formulário principal
+    const atm      = document.getElementById('atm').value.trim();
+    const kmStart  = parseFloat(document.getElementById('km-start').value);
+    const kmEnd    = parseFloat(document.getElementById('km-end').value);
+    const dateTime = document.getElementById('date-time').value;
+    const notes    = document.getElementById('notes').value.trim();
+
+    // captura da foto (se houver)
+    const photoFile = document.getElementById('photo').files[0];
+    let photoData = '';
+    if (photoFile) {
+      photoData = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(photoFile);
+      });
+    }
+
+    // grava no banco de dados
+    await addRecord({
+      atm,
+      kmStart,
+      kmEnd,
+      dateTime,
+      latitude,
+      longitude,
+      notes,
+      photo: photoData
+    });
+
+    // reseta o formulário e atualiza a lista
+    document.getElementById('record-form').reset();
+    loadAndRender();
+
+  }, (err) => {
+    alert('Geolocalização falhou: ' + err.message);
   });
+});
+
 
   // Filtro
   document.getElementById('apply-filters').addEventListener('click', e => {
