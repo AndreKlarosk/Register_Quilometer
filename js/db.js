@@ -12,7 +12,7 @@ export async function initDB() {
           autoIncrement: true,
         });
         store.createIndex('atm', 'atm');
-        store.createIndex('date', 'date');
+        store.createIndex('date', 'dateTime');
         store.createIndex('lat', 'latitude');
         store.createIndex('lng', 'longitude');
       }
@@ -33,4 +33,9 @@ export async function getRecords() {
 export async function deleteRecord(id) {
   const db = await initDB();
   return db.delete(STORE_NAME, id);
+}
+
+export async function updateRecord(id, updatedRecord) {
+  const db = await initDB();
+  return db.put(STORE_NAME, { ...updatedRecord, id });
 }
