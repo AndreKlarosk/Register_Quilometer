@@ -106,6 +106,45 @@
         <div id="map" style="height: 400px;"></div>
       </section>
     </div>
+      <!-- Modal de edição -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h2>Editar Registro</h2>
+      <form id="editForm">
+        <input type="hidden" id="edit-id">
+        <input type="hidden" id="edit-lat">
+        <input type="hidden" id="edit-lng">
+        <div class="form-group">
+          <label for="edit-atm">ATM:</label>
+          <input type="text" id="edit-atm" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-km-start">KM In:</label>
+          <input type="number" id="edit-km-start" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-km-end">KM Out:</label>
+          <input type="number" id="edit-km-end" step="0.1" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-date-time">Data e Hora:</label>
+          <input type="datetime-local" id="edit-date-time" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-notes">Notas:</label>
+          <textarea id="edit-notes" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="edit-photo">Foto (substituir):</label>
+          <input type="file" id="edit-photo" accept="image/*">
+          <img id="edit-photo-preview" alt="Preview" style="margin-top:8px; max-width:100px; max-height:100px; object-fit:cover;">
+        </div>
+        <button type="submit">Salvar Alterações</button>
+      </form>
+    </div>
+  </div>
+
   </main>
 
   <!-- Script principal -->
